@@ -159,20 +159,35 @@ class History:
         return boards_str
 
     def is_win(self):
-        # Feel free to implement this in anyway if needed
-        pass
+        return all(x == 0 for x in self.active_board_stats)
 
     def get_valid_actions(self):
-        # Feel free to implement this in anyway if needed
-        pass
+        actions = []
+
+        for board_num in range(self.num_boards):
+            if self.active_board_stats[board_num] == 0:
+                continue
+
+            for pos in range(9):
+                if self.boards[board_num][pos] == '0':
+                    actions.append(board_num * 9 + pos)
+
+        return actions
 
     def is_terminal_history(self):
-        # Feel free to implement this in anyway if needed
-        pass
+        return self.is_win()
 
     def get_value_given_terminal_history(self):
-        # Feel free to implement this in anyway if needed
-        pass
+        """
+        Returns utility from maximizing player's perspective.
+
+        In Notakto, if no moves are available, the player to move wins
+        because the previous player created the final three-in-a-row and loses.
+        """
+        if self.current_player == 1:
+            return 1
+        else:
+            return -1
 
 
 def alpha_beta_pruning(history_obj, alpha, beta, max_player_flag):
@@ -190,8 +205,55 @@ def alpha_beta_pruning(history_obj, alpha, beta, max_player_flag):
     global visited_histories_list
     visited_histories_list.append(history_obj.history)
     # TODO implement
-    return -2
-    # TODO implement
+
+    if history_obj.is_terminal_history():
+        return history_obj.get_value_given_terminal_history()
+
+    actions = history_obj.get_valid_actions()
+
+    if max_player_flag:
+
+        value = -math.inf
+
+        for action in actions:
+            child = History(
+                num_boards=history_obj.num_boards,
+                history=history_obj.history + [action]
+            )
+
+            value = max(
+                value,
+                alpha_beta_pruning(child, alpha, beta, False)
+            )
+
+            alpha = max(alpha, value)
+
+            if alpha >= beta:
+                break
+
+        return value
+
+    else:
+
+        value = math.inf
+
+        for action in actions:
+            child = History(
+                num_boards=history_obj.num_boards,
+                history=history_obj.history + [action]
+            )
+
+            value = min(
+                value,
+                alpha_beta_pruning(child, alpha, beta, True)
+            )
+
+            beta = min(beta, value)
+
+            if alpha >= beta:
+                break
+
+        return value
 
 
 def maxmin(history_obj, max_player_flag):
@@ -207,8 +269,50 @@ def maxmin(history_obj, max_player_flag):
     # the key corresponding to self.boards.
     global board_positions_val_dict
     # TODO implement
-    return -2
-    # TODO implement
+    board_key = history_obj.get_boards_str()
+
+    if board_key in board_positions_val_dict:
+        return board_positions_val_dict[board_key]
+
+    if history_obj.is_terminal_history():
+        value = history_obj.get_value_given_terminal_history()
+        board_positions_val_dict[board_key] = value
+        return value
+
+    actions = history_obj.get_valid_actions()
+
+    if max_player_flag:
+
+        value = -math.inf
+
+        for action in actions:
+            child = History(
+                num_boards=history_obj.num_boards,
+                history=history_obj.history + [action]
+            )
+
+            value = max(
+                value,
+                maxmin(child, False)
+            )
+
+    else:
+
+        value = math.inf
+
+        for action in actions:
+            child = History(
+                num_boards=history_obj.num_boards,
+                history=history_obj.history + [action]
+            )
+
+            value = min(
+                value,
+                maxmin(child, True)
+            )
+
+    board_positions_val_dict[board_key] = value
+    return value
 
 
 def solve_alpha_beta_pruning(history_obj, alpha, beta, max_player_flag):
